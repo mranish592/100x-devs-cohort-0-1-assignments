@@ -7,16 +7,33 @@
     let todoState = [];
     let oldTodoState = [];
 
-    function addTodoToDom() {
-      
+    function addTodoToDom(todo) {
+      console.log("addTodoToDom", todo);
+      const titleElement = document.createElement("b");
+      titleElement.innerHTML = todo.title;
+      const descriptionElement = document.createElement("div");
+      descriptionElement.innerHTML = todo.description;
+      const todoElement = document.createElement("div");
+      todoElement.id = todo.id;
+      todoElement.appendChild(titleElement);
+      todoElement.appendChild(descriptionElement);
+      todoElement.appendChild(document.createElement("br"))
+
+      const todos = document.getElementById("todos");
+      todos.appendChild(todoElement)
     }
 
     function removeTodoFromDom(todo) {
-      
+      console.log("removeTodoFromDom", todo);
+      const todoElement = document.getElementById(todo.id);
+      todoElement.remove();
     }
 
     function updateTodoInDom(oldTodo, newTodo) {
-        
+      console.log("updateTodoInDom", oldTodo, newTodo);
+      const oldTodoElement = document.getElementById(oldTodo.id);
+      oldTodoElement.children[0].innerHTML = newTodo.title;
+      oldTodoElement.children[1].innerHTML = newTodo.description;
     }
 
     function updateState(newTodos) {
@@ -29,9 +46,77 @@
       const deleted = [];
       const updated = [];
       // calculate these 3 arrays
+
+      /* In order to use two pointer approach for calculating diff, we need both the arrays sorted. 
+      Since `id` is unique, we can use `id` for sorting. 
+      Only `newTodos` need to be sorted, because `oldTodoState` is always assigned to newTodos */
+      sortById(newTodos);
+
+      /* calculating added elements in `newTodos` by comparing with `oldTodoState` */
+      let j = 0;
+      for(let i = 0; i < newTodos.length; i++){
+        while(j < oldTodoState.length - 1 && oldTodoState[j].id < newTodos[i].id){
+          j++;
+        }
+        if(j < oldTodoState.length && oldTodoState[j].id != newTodos[i].id){
+          added.push(newTodos[i]);
+        } 
+        // explicitly handling the case when `oldTodoState` is empty
+        if(oldTodoState.length === 0){
+          added.push(newTodos[i]);
+        }
+      }
+
+      /* deleted elements are nothing but the `added` problem reversed for `newTodos` and `oldTodoState` */
+      j = 0;
+      for(let i = 0; i < oldTodoState.length; i++){
+        while(j < newTodos.length - 1 && newTodos[j].id < oldTodoState[i].id){
+          j++;
+        }
+        if(j < newTodos.length && newTodos[j].id != oldTodoState[i].id){
+          deleted.push(oldTodoState[i]);
+          
+        } 
+        /* updated elements have the id match. but the content does not match.
+        Note: only elements from `oldTodoState` can be considered updated*/
+        else if (j < newTodos.length && newTodos[j].id === oldTodoState[i].id){
+          if(newTodos[j].title != oldTodoState[i].title || newTodos[j].description != oldTodoState[i].description) {
+            updated.push({new: newTodos[j], old: oldTodoState[i]});
+          }
+        }
+        if(newTodos.length === 0){
+          deleted.push(oldTodoState[i]);
+        }
+      }
+
+      console.log("oldTodoState: ", oldTodoState);
+      console.log("newTodos: ", newTodos);
+      console.log("added: ", added);
+      console.log("updated: ", updated);
+      console.log("deleted: ", deleted);
+
       // call addTodo, removeTodo, updateTodo functions on each of the
       // elements
-      oldTodoState = newTodos;
+      added.forEach((todo) => { addTodoToDom(todo) });
+      updated.forEach((update) => { updateTodoInDom(update.old, update.new) });
+      deleted.forEach((todo) => { removeTodoFromDom(todo) });
+
+      oldTodoState = newTodos.slice();
+      todoState = newTodos.slice();
+    }
+
+    function sortById(arr){
+      arr.sort((todo1, todo2) => {
+        if(todo1.id > todo2.id){
+          return 1; 
+        }
+        else if(todo1.id > todo2.id){
+          return -1;
+        }
+        else {
+          return 0;
+        }
+      })
     }
 
     function addTodo() {
@@ -43,7 +128,13 @@
         id: globalId++,
       })
       updateState(todoState);
+      console.log(todoState)
     }
+
+    // initialState = JSON.parse('[{"title":"First Todo","description":"Hey there","id":1},{"title":"Second Todo","description":"I will be removed soon","id":2},{"title":"Third Todo","description":"I will be updated soon","id":3}]')
+    // updateState(initialState)
+    // newState = JSON.parse('[{"title":"First Todo","description":"Hey there","id":1},{"title":"Third Todo updated","description":"I am be updated now","id":3}]')
+    // updateState(newState)
   </script>
 </head>
 
